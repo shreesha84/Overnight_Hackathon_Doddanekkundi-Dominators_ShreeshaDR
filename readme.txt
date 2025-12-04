@@ -10,4 +10,4 @@ UPI HawkEye is a real-time analytics dashboard designed to detect anomalies in p
 ## Prerequisites
 
 * Python 3.8 or higher.
-* The following Python libraries:
+* The libraries from requirements.txt
