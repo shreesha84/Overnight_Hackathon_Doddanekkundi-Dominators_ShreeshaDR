@@ -1,4 +1,3 @@
-```txt
 # UPI HawkEye: Advanced Fraud Detection System
 
 UPI HawkEye is a real-time analytics dashboard designed to detect anomalies in payment transactions. It identifies specific fraud patterns such as Money Mules and Impossible Travel events using rule-based logic and graph network analysis.
@@ -12,4 +11,3 @@ UPI HawkEye is a real-time analytics dashboard designed to detect anomalies in p
 
 * Python 3.8 or higher.
 * The libraries from requirements.txt
-```
