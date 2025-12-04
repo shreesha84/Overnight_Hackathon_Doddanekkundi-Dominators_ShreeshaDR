@@ -4,3 +4,4 @@ numpy
 altair
 networkx
 pyvis
+sklearn
