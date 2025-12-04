@@ -7,9 +7,13 @@ import networkx as nx
 from pyvis.network import Network
 import streamlit.components.v1 as components
 
+# --- NEW IMPORTS FOR AI ---
+from sklearn.ensemble import IsolationForest
+from sklearn.preprocessing import StandardScaler
+
 # 1. PAGE CONFIGURATION
 st.set_page_config(
-    page_title="UPI HawkEye", 
+    page_title="UPI HawkEye AI", 
     layout="wide", 
     page_icon="🦅",
     initial_sidebar_state="expanded"
@@ -29,8 +33,8 @@ col_head1, col_head2 = st.columns([1, 4])
 with col_head1:
     st.markdown("# 🦅")
 with col_head2:
-    st.title("UPI HawkEye: Advanced Fraud Detection")
-    st.caption("Real-time Anomaly Detection • Graph Network Analysis • Risk Scoring")
+    st.title("UPI HawkEye: AI-Powered Fraud Defense")
+    st.caption("Rule Engine • Isolation Forest (ML) • Graph Forensics")
 
 # 3. LOAD DATA
 DATA_FILE = "large_upi_dataset.csv"
@@ -59,7 +63,6 @@ mule_receivers = receiver_counts[receiver_counts > 15].index.tolist()
 df['Mule_Flag'] = df['Receiver_ID'].isin(mule_receivers)
 
 # B. DETECT IMPOSSIBLE TRAVEL (Rule: Location change > 500km in < 30 mins)
-# We sort by Sender and Time to check previous location
 df = df.sort_values(['Sender_ID', 'Timestamp'])
 df['Prev_Location'] = df.groupby('Sender_ID')['Location'].shift(1)
 df['Prev_Time'] = df.groupby('Sender_ID')['Timestamp'].shift(1)
@@ -70,10 +73,29 @@ mask_loc_change = (df['Location'] != df['Prev_Location']) & (df['Prev_Location']
 mask_fast_move = df['Time_Diff_Min'] < 30
 df['Impossible_Travel'] = mask_loc_change & mask_fast_move
 
-# C. CALCULATE RISK SCORE
+# --- NEW SECTION: C. ISOLATION FOREST (AI ANOMALY DETECTION) ---
+# We use 'Amount' and 'Time_Diff_Min' as features
+df['Time_Diff_Min'] = df['Time_Diff_Min'].fillna(0) # Handle first transactions
+
+# Prepare features for ML
+features = df[['Amount', 'Time_Diff_Min']]
+scaler = StandardScaler()
+features_scaled = scaler.fit_transform(features)
+
+# Train Isolation Forest
+# contamination=0.03 means we expect ~3% of data to be anomalies
+iso_forest = IsolationForest(contamination=0.03, random_state=42)
+df['Anomaly_Result'] = iso_forest.fit_predict(features_scaled)
+
+# -1 is Anomaly, 1 is Normal
+df['AI_Flag'] = df['Anomaly_Result'] == -1
+# -------------------------------------------------------------
+
+# D. CALCULATE RISK SCORE
 df['Risk_Score'] = 0
-df.loc[df['Mule_Flag'], 'Risk_Score'] += 70
+df.loc[df['Mule_Flag'], 'Risk_Score'] += 50
 df.loc[df['Impossible_Travel'], 'Risk_Score'] += 40
+df.loc[df['AI_Flag'], 'Risk_Score'] += 30  # Add 30 points if AI finds it suspicious
 
 def get_risk_label(score):
     if score >= 70: return "CRITICAL"
@@ -87,7 +109,7 @@ df['Risk_Level'] = df['Risk_Score'].apply(get_risk_label)
 m1, m2, m3, m4 = st.columns(4)
 m1.metric("Total Transactions", f"{len(df):,}")
 m2.metric("Money Mules Identified", len(mule_receivers), delta_color="inverse")
-m3.metric("Impossible Travel Events", len(df[df['Impossible_Travel']]), delta_color="inverse")
+m3.metric("AI Detected Anomalies", len(df[df['AI_Flag']]), delta_color="inverse", help="Statistically unusual transactions found by Isolation Forest")
 m4.metric("CRITICAL RISKS", len(df[df['Risk_Level'] == "CRITICAL"]), delta_color="inverse")
 
 st.markdown("---")
@@ -101,16 +123,18 @@ with tab1:
     col_chart1, col_chart2 = st.columns(2)
     
     with col_chart1:
-        st.subheader("Risk Velocity (Hourly)")
-        # Group by hour to show volume
-        hourly_risk = df.set_index('Timestamp').resample('H')['Risk_Score'].mean().reset_index()
+        st.subheader("🤖 AI Anomaly Analysis")
+        st.caption("Red dots are transactions the AI flagged as 'Mathematically Unusual'")
         
-        chart = alt.Chart(hourly_risk).mark_line(color='#FF4B4B', point=True).encode(
-            x='Timestamp',
-            y='Risk_Score',
-            tooltip=['Timestamp', 'Risk_Score']
+        # Scatter plot: Amount vs Time
+        # Color by AI Flag
+        ai_chart = alt.Chart(df).mark_circle(size=60).encode(
+            x='Time_Diff_Min',
+            y='Amount',
+            color=alt.Color('AI_Flag', scale=alt.Scale(domain=[True, False], range=['#FF4B4B', '#00C9FF']), legend=alt.Legend(title="AI Flag")),
+            tooltip=['Transaction_ID', 'Amount', 'Time_Diff_Min', 'AI_Flag']
         ).interactive()
-        st.altair_chart(chart, use_container_width=True)
+        st.altair_chart(ai_chart, use_container_width=True)
 
     with col_chart2:
         st.subheader("Fraud Distribution by Location")
@@ -172,28 +196,26 @@ with tab3:
         display_df = df
         
     st.dataframe(
-        display_df[['Transaction_ID', 'Sender_ID', 'Receiver_ID', 'Amount', 'Location', 'Risk_Score', 'Risk_Level']].sort_values(by='Risk_Score', ascending=False),
+        display_df[['Transaction_ID', 'Sender_ID', 'Receiver_ID', 'Amount', 'Location', 'Risk_Score', 'AI_Flag', 'Risk_Level']].sort_values(by='Risk_Score', ascending=False),
         use_container_width=True
     )
 
-# 7. SIDEBAR ACTIONS
-# -------------------------------------
-st.sidebar.title("👮 Action Center")
+
+st.sidebar.title(" Action Center")
 st.sidebar.markdown("---")
 
 if st.sidebar.button("Freeze High-Risk Accounts"):
     st.sidebar.success(f"COMMAND SENT: Blocked {len(mule_receivers)} Money Mule Accounts.")
 
 st.sidebar.markdown("### Export Reports")
-if st.sidebar.button("Generate Cyber Cell Report"):
+if st.sidebar.button(" Generate Cyber Cell Report"):
     st.sidebar.info("Report generated successfully. Downloading...")
     
-    # Create a simple CSV download
     report_csv = df[df['Risk_Level'] == "CRITICAL"].to_csv(index=False)
     st.sidebar.download_button(
-        label="Download CSV",
+        label=" Download CSV",
         data=report_csv,
-        file_name="fraud_report.csv",
+        file_name="large_upi_dataset.csv",
         mime="text/csv"
     )
 
