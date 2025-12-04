@@ -16,7 +16,6 @@ def get_random_upi():
     return f"{random.choice(names)}_{random.randint(100, 9999)}{random.choice(banks)}"
 
 print(f"Generating {NUM_ROWS} transactions with MULTIPLE fraud rings...")
-
 data = []
 
 # 1. GENERATE NORMAL "NOISE" DATA
