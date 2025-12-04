@@ -181,17 +181,17 @@ with tab3:
 st.sidebar.title("👮 Action Center")
 st.sidebar.markdown("---")
 
-if st.sidebar.button("🔒 Freeze High-Risk Accounts"):
-    st.sidebar.success(f"⚠️ COMMAND SENT: Blocked {len(mule_receivers)} Money Mule Accounts.")
+if st.sidebar.button("Freeze High-Risk Accounts"):
+    st.sidebar.success(f"COMMAND SENT: Blocked {len(mule_receivers)} Money Mule Accounts.")
 
 st.sidebar.markdown("### Export Reports")
-if st.sidebar.button("📄 Generate Cyber Cell Report"):
+if st.sidebar.button("Generate Cyber Cell Report"):
     st.sidebar.info("Report generated successfully. Downloading...")
     
     # Create a simple CSV download
     report_csv = df[df['Risk_Level'] == "CRITICAL"].to_csv(index=False)
     st.sidebar.download_button(
-        label="📥 Download CSV",
+        label="Download CSV",
         data=report_csv,
         file_name="fraud_report.csv",
         mime="text/csv"
