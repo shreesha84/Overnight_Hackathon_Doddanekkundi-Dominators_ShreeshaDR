@@ -4,12 +4,12 @@ import uuid
 from datetime import datetime, timedelta
 import numpy as np
 
-# --- CONFIGURATION ---
-NUM_ROWS = 8000  # Base legitimate transactions
+
+NUM_ROWS = 8000  
 START_DATE = datetime(2024, 1, 1, 8, 0, 0)
 END_DATE = datetime(2024, 1, 7, 23, 59, 59)
 
-# --- HELPER LISTS ---
+
 banks = ["@oksbi", "@okhdfc", "@ybl", "@paytm", "@ibl", "@axl", "@icici"]
 first_names = ["arjun", "priya", "rahul", "sneha", "vikram", "amit", "pooja", "karan", 
                "simran", "rohan", "ananya", "dev", "isha", "aditya", "neha"]
@@ -40,11 +40,9 @@ def get_random_timestamp(start, end, time_pattern="normal"):
     base_time = start + timedelta(seconds=random_second)
     
     if time_pattern == "normal":
-        # Weight towards daytime (8AM-10PM)
         hour = random.choices(range(24), weights=[1,1,2,3,4,8,12,15,18,20,20,18,16,14,12,10,8,12,16,18,12,8,4,2])[0]
         base_time = base_time.replace(hour=hour)
     elif time_pattern == "night":
-        # Suspicious night hours (11PM-4AM)
         hour = random.choice([23, 0, 1, 2, 3, 4])
         base_time = base_time.replace(hour=hour)
     
@@ -53,12 +51,10 @@ def get_random_timestamp(start, end, time_pattern="normal"):
 print(f"Generating comprehensive UPI fraud detection dataset...")
 data = []
 
-# ==============================================
-# 1. GENERATE REALISTIC LEGITIMATE TRANSACTIONS
-# ==============================================
+
 print("Generating legitimate transactions...")
 
-# Create a pool of regular users
+
 regular_users = [get_random_upi() for _ in range(500)]
 user_profiles = {}
 
@@ -73,13 +69,12 @@ for _ in range(NUM_ROWS):
     sender = random.choice(regular_users)
     profile = user_profiles[sender]
     
-    # Choose transaction type
-    if random.random() < 0.6:  # 60% merchant payments
+ 
+    if random.random() < 0.6:  
         category = random.choice(profile["preferred_merchants"])
         receiver = get_merchant_upi(category)
         merchant_type = category
         
-        # Realistic amounts per category
         if category == "food":
             amount = round(random.uniform(50, 800), 2)
         elif category == "transport":
@@ -90,13 +85,13 @@ for _ in range(NUM_ROWS):
             amount = round(random.uniform(100, 10000), 2)
         else:
             amount = round(random.uniform(100, 2000), 2)
-    else:  # 40% P2P transfers
+    else:  
         receiver = random.choice(regular_users)
         merchant_type = "p2p"
         amount = round(random.gauss(profile["avg_transaction"], 500), 2)
         amount = max(10, min(amount, 25000))  # Cap amounts
     
-    # Mostly home location, sometimes travel
+    
     location = profile["home_location"] if random.random() < 0.85 else random.choice(locations)
     
     data.append({
@@ -110,12 +105,10 @@ for _ in range(NUM_ROWS):
         "Status": "success"
     })
 
-# ==============================================
-# 2. FRAUD PATTERN 1: MONEY MULE NETWORK
-# ==============================================
+
 print("Injecting Money Mule Networks...")
 
-# Large mule network (kingpin)
+
 kingpin_mule = "KINGPIN_BOSS@ybl"
 kingpin_time = START_DATE + timedelta(hours=14)
 
@@ -132,7 +125,7 @@ for i in range(60):
         "Status": "success"
     })
 
-# Medium mule (phishing operator)
+
 phishing_mule = "PHISHING_NET@oksbi"
 for i in range(35):
     data.append({
@@ -146,7 +139,6 @@ for i in range(35):
         "Status": "success"
     })
 
-# Smaller mule (local scammer)
 local_mule = "LOCAL_SCAM@paytm"
 for i in range(22):
     data.append({
@@ -160,16 +152,13 @@ for i in range(22):
         "Status": "success"
     })
 
-# ==============================================
-# 3. FRAUD PATTERN 2: IMPOSSIBLE TRAVEL
-# ==============================================
+
 print("Injecting Impossible Travel patterns...")
 
 for i in range(5):
     thief = f"TRAVEL_THIEF_{i}@ybl"
     base_time = START_DATE + timedelta(hours=random.randint(10, 20))
     
-    # Transaction in City A
     data.append({
         "Transaction_ID": f"TRAVEL_{i}_A",
         "Sender_ID": thief,
@@ -181,7 +170,7 @@ for i in range(5):
         "Status": "success"
     })
     
-    # Transaction in City B (impossible - 10 mins later)
+
     data.append({
         "Transaction_ID": f"TRAVEL_{i}_B",
         "Sender_ID": thief,
@@ -193,16 +182,13 @@ for i in range(5):
         "Status": "success"
     })
 
-# ==============================================
-# 4. FRAUD PATTERN 3: VELOCITY ATTACKS
-# ==============================================
 print("Injecting High Velocity attacks...")
 
 for i in range(3):
     velocity_attacker = f"VELOCITY_BOT_{i}@paytm"
     attack_time = START_DATE + timedelta(days=random.randint(1, 5), hours=random.randint(1, 20))
     
-    # Burst of 15 transactions in 30 minutes
+   
     for j in range(15):
         data.append({
             "Transaction_ID": f"VEL_{i}_{j}",
@@ -215,16 +201,14 @@ for i in range(3):
             "Status": random.choice(["success", "failed"])
         })
 
-# ==============================================
-# 5. FRAUD PATTERN 4: ROUND AMOUNT TESTING
-# ==============================================
+
 print("Injecting Round Amount testing patterns...")
 
 for i in range(4):
     tester = f"ROUND_TESTER_{i}@ybl"
     test_time = START_DATE + timedelta(days=random.randint(1, 6))
     
-    # Small test transactions (round amounts)
+  
     for amount in [10, 50, 100, 500, 1000]:
         data.append({
             "Transaction_ID": f"ROUND_{i}_{amount}",
@@ -237,7 +221,6 @@ for i in range(4):
             "Status": "success"
         })
     
-    # Followed by large round amount
     data.append({
         "Transaction_ID": f"ROUND_{i}_FINAL",
         "Sender_ID": tester,
@@ -249,9 +232,7 @@ for i in range(4):
         "Status": "success"
     })
 
-# ==============================================
-# 6. FRAUD PATTERN 5: NIGHT TIME LARGE TRANSACTIONS
-# ==============================================
+
 print("Injecting Unusual Hour patterns...")
 
 for i in range(8):
@@ -266,9 +247,7 @@ for i in range(8):
         "Status": "success"
     })
 
-# ==============================================
-# 7. SAVE DATASET
-# ==============================================
+
 df = pd.DataFrame(data)
 df = df.sample(frac=1).reset_index(drop=True)  # Shuffle
 df = df.sort_values('Timestamp').reset_index(drop=True)  # Sort by time
